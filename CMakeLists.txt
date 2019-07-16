@@ -33,8 +33,9 @@ find_package(Threads REQUIRED)
 
 set(SOURCES
   src/rest/Acceptor.cpp
+  src/rest/Connection.cpp
   src/rest/Server.cpp
-  src/rest/Request.cpp
+#  src/rest/Request.cpp
   src/rest/Response.cpp
 )
 

@@ -14,35 +14,34 @@
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 
-namespace asiodemo {
-namespace rest {
-  
+namespace asiodemo { namespace rest {
+
 enum class SocketType { Tcp = 1, Ssl = 2, Unix = 3 };
 
 /// Wrapper class that contains sockets / ssl-stream
 /// and the corrsponding peer endpoint
-template<SocketType T>
+template <SocketType T>
 struct AsioSocket {};
 
-template<>
+template <>
 struct AsioSocket<SocketType::Tcp> {
-  AsioSocket(asio::io_context& ctx)
-    : context(ctx), socket(ctx), timer(ctx) {}
-  
+  AsioSocket(asio::io_context& ctx) : context(ctx), socket(ctx), timer(ctx) {}
+
   ~AsioSocket() {
     timer.cancel();
     try {
       asio::error_code ec;
       shutdown(ec);
-    } catch(...) {}
+    } catch (...) {
+    }
   }
-  
+
   void setNonBlocking(bool v) { socket.non_blocking(v); }
   bool supportsMixedIO() const { return true; }
   std::size_t available(asio::error_code& ec) const {
     return socket.lowest_layer().available(ec);
   }
-  
+
   void shutdown(asio::error_code& ec) {
     if (socket.is_open()) {
 #ifndef _WIN32
@@ -57,41 +56,41 @@ struct AsioSocket<SocketType::Tcp> {
       }
     }
   }
-  
-  asio::io_context &context;
+
+  asio::io_context& context;
   asio::ip::tcp::socket socket;
   asio::ip::tcp::acceptor::endpoint_type peer;
   asio::steady_timer timer;
   asio::streambuf buffer;
 };
 
-template<>
+template <>
 struct AsioSocket<SocketType::Ssl> {
-  AsioSocket(asio::io_context& ctx,
-             asio::ssl::context& sslContext)
-  : context(ctx), socket(ctx, sslContext), timer(ctx) {}
-  
+  AsioSocket(asio::io_context& ctx, asio::ssl::context& sslContext)
+      : context(ctx), socket(ctx, sslContext), timer(ctx) {}
+
   ~AsioSocket() {
     try {
       timer.cancel();
       asio::error_code ec;
       shutdown(ec);
-    } catch(...) {}
+    } catch (...) {
+    }
   }
-  
+
   void setNonBlocking(bool v) { socket.lowest_layer().non_blocking(v); }
   bool supportsMixedIO() const { return false; }
   std::size_t available(asio::error_code& ec) const {
-    return 0; // always disable
+    return 0;  // always disable
   }
-  
-  template<typename F>
+
+  template <typename F>
   void handshake(F&& cb) {
     // Perform SSL handshake and verify the remote host's certificate.
     socket.next_layer().set_option(asio::ip::tcp::no_delay(true));
     socket.async_handshake(asio::ssl::stream_base::server, std::forward<F>(cb));
   }
-  
+
   void shutdown(asio::error_code& ec) {
     if (socket.lowest_layer().is_open()) {
 #ifndef _WIN32
@@ -108,8 +107,8 @@ struct AsioSocket<SocketType::Ssl> {
 #endif
     }
   }
-  
-  asio::io_context &context;
+
+  asio::io_context& context;
   asio::ssl::stream<asio::ip::tcp::socket> socket;
   asio::ip::tcp::acceptor::endpoint_type peer;
   asio::steady_timer timer;
@@ -117,26 +116,25 @@ struct AsioSocket<SocketType::Ssl> {
 };
 
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS) || defined(ASIO_HAS_LOCAL_SOCKETS)
-template<>
+template <>
 struct AsioSocket<SocketType::Unix> {
-  
-  AsioSocket(asio::io_context& ctx)
-  : context(ctx), socket(ctx), timer(ctx) {}
+  AsioSocket(asio::io_context& ctx) : context(ctx), socket(ctx), timer(ctx) {}
 
   ~AsioSocket() {
     try {
       timer.cancel();
       asio::error_code ec;
       shutdown(ec);
-    } catch(...) {}
+    } catch (...) {
+    }
   }
-  
+
   void setNonBlocking(bool v) { socket.non_blocking(v); }
   bool supportsMixedIO() const { return true; }
   std::size_t available(asio::error_code& ec) const {
     return socket.lowest_layer().available(ec);
   }
-  
+
   void shutdown(asio::error_code& ec) {
     if (socket.is_open()) {
       socket.cancel(ec);
@@ -148,15 +146,14 @@ struct AsioSocket<SocketType::Unix> {
       }
     }
   }
-  
-  asio::io_context &context;
+
+  asio::io_context& context;
   asio::local::stream_protocol::socket socket;
   asio::local::stream_protocol::acceptor::endpoint_type peer;
   asio::steady_timer timer;
   asio::streambuf buffer;
 };
-#endif // ASIO_HAS_LOCAL_SOCKETS
+#endif  // ASIO_HAS_LOCAL_SOCKETS
 
-} // namespace rest
-} // namespace asiodemo
+}}  // namespace asiodemo::rest
 #endif

@@ -11,7 +11,11 @@
 using namespace asiodemo::rest;
 
 template <SocketType T>
-void Acceptor<T>::open() {
+AcceptorTcp<T>::AcceptorTcp(asio::io_context &ctx, rest::Server& server)
+  : Acceptor(server), _ctx(ctx), _acceptor(ctx), , _asioSocket() {}
+
+template <SocketType T>
+void AcceptorTcp<T>::open() {
   asio::ip::tcp::resolver resolver(_ctx);
 
   std::string hostname = "0.0.0.0";
@@ -92,7 +96,7 @@ void Acceptor<T>::open() {
 }
 
 template <SocketType T>
-void Acceptor<T>::close() {
+void AcceptorTcp<T>::close() {
   if (_asioSocket) {
     _asioSocket->timer.cancel();
   }
@@ -107,7 +111,7 @@ void Acceptor<T>::close() {
 }
 
 template <>
-void Acceptor<SocketType::Tcp>::asyncAccept() {
+void AcceptorTcp<SocketType::Tcp>::asyncAccept() {
   assert(!_asioSocket);
 
   // one could choose another IO context here to scale up 
@@ -129,12 +133,12 @@ void Acceptor<SocketType::Tcp>::asyncAccept() {
 }
 
 template <>
-void Acceptor<SocketType::Tcp>::performHandshake(std::unique_ptr<AsioSocket<SocketType::Tcp>> proto) {
+void AcceptorTcp<SocketType::Tcp>::performHandshake(std::unique_ptr<AsioSocket<SocketType::Tcp>> proto) {
   assert(false); // MSVC requires the implementation to exist
 }
 
 template <>
-void Acceptor<SocketType::Ssl>::performHandshake(std::unique_ptr<AsioSocket<SocketType::Ssl>> proto) {
+void AcceptorTcp<SocketType::Ssl>::performHandshake(std::unique_ptr<AsioSocket<SocketType::Ssl>> proto) {
   // io_context is single-threaded, no sync needed
   auto* ptr = proto.get();
   proto->timer.expires_from_now(std::chrono::seconds(60));
@@ -164,7 +168,7 @@ void Acceptor<SocketType::Ssl>::performHandshake(std::unique_ptr<AsioSocket<Sock
 }
 
 template <>
-void Acceptor<SocketType::Ssl>::asyncAccept() {
+void AcceptorTcp<SocketType::Ssl>::asyncAccept() {
   assert(!_asioSocket);
 
   // select the io context for this socket
@@ -186,7 +190,7 @@ void Acceptor<SocketType::Ssl>::asyncAccept() {
 }
 
 template <SocketType T>
-void Acceptor<T>::handleError(asio::error_code const& ec) {
+void AcceptorTcp<T>::handleError(asio::error_code const& ec) {
   if (ec == asio::error::operation_aborted) {
     // this "error" is accpepted, so it doesn't justify a warning
     std::cout
@@ -207,5 +211,5 @@ void Acceptor<T>::handleError(asio::error_code const& ec) {
 }
 
 
-template class asiodemo::rest::Acceptor<SocketType::Tcp>;
-template class asiodemo::rest::Acceptor<SocketType::Ssl>;
+template class asiodemo::rest::AcceptorTcp<SocketType::Tcp>;
+template class asiodemo::rest::AcceptorTcp<SocketType::Ssl>;
