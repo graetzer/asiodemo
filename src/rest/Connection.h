@@ -13,25 +13,23 @@
 
 #include <llhttp.h>
 
-namespace asiodemo {
-namespace rest {
+namespace asiodemo { namespace rest {
 
 class Server;
 struct Request;
-  
+
 class AbstrConn : public std::enable_shared_from_this<AbstrConn> {};
 
-template<SocketType T>
+template <SocketType T>
 class Connection : public AbstrConn {
  public:
-  Connection(Server& server, 
-             std::unique_ptr<AsioSocket<T>>);
+  Connection(Server& server, std::unique_ptr<AsioSocket<T>>);
 
   ~Connection();
 
   void start();
   void close();
-  
+
  private:
   static int on_message_began(llhttp_t* p);
   static int on_url(llhttp_t* p, const char* at, size_t len);
@@ -43,18 +41,17 @@ class Connection : public AbstrConn {
   static int on_message_complete(llhttp_t* p);
 
  private:
-  
   /// read from socket
   void asyncReadSome();
 
   /// default max chunksize is 30kb in arangodb (each read fits)
   static constexpr size_t READ_BLOCK_SIZE = 1024 * 32;
-  
+
   void sendResponse(std::unique_ptr<rest::Response> response);
 
   /// @brief send error response including response body
   void addSimpleResponse(rest::ResponseCode);
-  
+
   bool readCallback(asio::error_code ec);
 
   void processRequest();
@@ -63,15 +60,15 @@ class Connection : public AbstrConn {
   /// handle an OPTIONS request
   void processCorsOptions();
   /// check authentication headers
-  //ResponseCode handleAuthHeader(rest::Request& request);
+  // ResponseCode handleAuthHeader(rest::Request& request);
   /// decompress content
   bool handleContentEncoding(rest::Request&);
-  
+
  private:
   rest::Server& _server;
   std::unique_ptr<AsioSocket<T>> _protocol;
 
-    /// the node http-parser
+  /// the node http-parser
   llhttp_t _parser;
   llhttp_settings_t _parserSettings;
 
@@ -87,7 +84,6 @@ class Connection : public AbstrConn {
   bool _checkedVstUpgrade;
 };
 
-}  // namespace rest
-}  // namespace arangodb
+}}  // namespace asiodemo::rest
 
 #endif

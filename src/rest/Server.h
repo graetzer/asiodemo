@@ -7,54 +7,43 @@
 #ifndef SERVER_H
 #define SERVER_H 1
 
-#include <thread>
-#include <string>
 #include <memory>
+#include <string>
+#include <thread>
 
 #include "Acceptor.h"
 #include "Request.h"
 #include "Response.h"
 
-namespace asiodemo {
-namespace rest {
+namespace asiodemo { namespace rest {
 
 class Server {
-
   typedef std::function<std::unique_ptr<Response>(Request const&)> HandleFunc;
 
-  public:
+ public:
+  Server() {}
+  ~Server() {}
 
-    Server() {}
-    ~Server() {}
+  void addHandler(std::string path, HandleFunc);
 
-    void addHandler(std::string path, HandleFunc);
+  void listenAndServe();
 
-    void useTLS(bool yesNo) {
-      _useTLS = yesNo;
-    }
+  asio::ssl::context& sslContext();
 
-    void listenAndServe();
+  std::unique_ptr<Response> execute(Request const&);
 
-    asio::ssl::context& sslContext();
+ private:
+  std::map<std::string, HandleFunc> _handlers;
 
-    std::unique_ptr<Response> execute(Request const&);
+  /// protect ssl context creation
+  std::mutex _sslContextMutex;
+  /// global SSL context to use here
+  std::unique_ptr<asio::ssl::context> _sslContext;
 
-  private:
-    bool _useTLS = false;
-    std::map<std::string, HandleFunc> _handlers;
-    
-    std::unique_ptr<Acceptor> _acceptor;
-
-    /// protect ssl context creation
-    std::mutex _sslContextMutex;
-    /// global SSL context to use here
-    std::unique_ptr<asio::ssl::context> _sslContext;
-
-    /// io contexts
-    std::shared_ptr<asio::io_context> _ioContext;
+  /// io contexts
+  std::shared_ptr<asio::io_context> _ioContext;
 };
 
-} // namespace rest
-} // namespace asiodemo 
+}}  // namespace asiodemo::rest
 
 #endif

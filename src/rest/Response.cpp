@@ -3,7 +3,6 @@
 using namespace asiodemo;
 using namespace asiodemo::rest;
 
-
 std::string Response::responseString() const {
   switch (this->status_code) {
     //  Informational 1xx
@@ -148,8 +147,7 @@ std::unique_ptr<std::string> Response::generateHeader() const {
     std::string const& key = it.first;
     size_t const keyLength = key.size();
     // ignore content-length
-    if (key == "content-length" ||
-        key == "connection" ||
+    if (key == "content-length" || key == "connection" ||
         key == "transfer-encoding") {
       continue;
     }
@@ -184,9 +182,9 @@ std::unique_ptr<std::string> Response::generateHeader() const {
     header->append(it.second);
     header->append("\r\n", 2);
   }
-  
+
   // add "Content-Type" header
-    header->append("Content-Type: text/plain; charset=utf-8\r\n");
+  header->append("Content-Type: text/plain; charset=utf-8\r\n");
 
   // Cookies
   for (auto const& it : this->cookies) {
@@ -202,7 +200,7 @@ std::unique_ptr<std::string> Response::generateHeader() const {
     header->append("0");
   }
   header->append("\r\n", 2);
-      
+
   header->append("Connection: Keep-Alive\r\n");
   header->append("Keep-Alive: timeout=60");
   header->append("\r\n\r\n");

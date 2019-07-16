@@ -7,13 +7,12 @@
 
 #include "AsioSocket.h"
 
-namespace asiodemo {
-namespace rest {
+namespace asiodemo { namespace rest {
 
 class Server;
 
 class Acceptor {
-public:
+ public:
   virtual ~Acceptor() {}
 
   virtual void open() = 0;
@@ -22,40 +21,39 @@ public:
   /// start accepting connections
   virtual void asyncAccept() = 0;
 
-  protected:
+ protected:
+  Acceptor(rest::Server& server)
+      : _open(false), _acceptFailures(0), _server(server) {}
 
-    Acceptor(rest::Server& server) : _open(false), _acceptFailures(0), _server(server) {}
-
-  protected:
-
-    bool _open;
-    size_t _acceptFailures;
-    rest::Server& _server;
+ protected:
+  bool _open;
+  size_t _acceptFailures;
+  rest::Server& _server;
 };
 
 template <SocketType T>
 class AcceptorTcp : public Acceptor {
-public:
-  AcceptorTcp(asio::io_context &ctx, rest::Server& server);
+ public:
+  AcceptorTcp(asio::io_context& ctx, rest::Server& server, int port);
 
-public:
+ public:
   void open() override;
   void close() override;
   void asyncAccept() override;
 
-private:
+ private:
   void performHandshake(std::unique_ptr<AsioSocket<T>>);
 
-  void handleError(asio::error_code const &);
+  void handleError(asio::error_code const&);
   static constexpr int maxAcceptErrors = 128;
 
-private:
-  asio::io_context &_ctx;
+ private:
+  asio::io_context& _ctx;
   asio::ip::tcp::acceptor _acceptor;
   std::unique_ptr<AsioSocket<T>> _asioSocket;
+  int _port;
 };
 
-} // namespace rest
-} // namespace asiodemo
+}}  // namespace asiodemo::rest
 
 #endif

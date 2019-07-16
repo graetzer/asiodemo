@@ -1,8 +1,7 @@
 #include "Utils.h"
 
-namespace asiodemo {
-namespace utils {
-  
+namespace asiodemo { namespace utils {
+
 using namespace asiodemo::rest;
 
 Request::Type llhttpToRequestType(llhttp_t* p) {
@@ -49,4 +48,4 @@ std::string trim(std::string const& sourceStr, std::string const& trimStr) {
   }
 }
 
-}}
+}}  // namespace asiodemo::utils

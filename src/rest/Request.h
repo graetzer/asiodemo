@@ -5,8 +5,7 @@
 #include <map>
 #include <string>
 
-namespace asiodemo {
-namespace rest {
+namespace asiodemo { namespace rest {
 
 struct Request {
   enum class Type {
@@ -40,17 +39,15 @@ struct Request {
     headers.emplace(std::move(key), std::move(val));
   }
 
-  public:
-
+ public:
   Type method;
-  std::string fullUrl; // path as specified
-  std::string path; // path without query
+  std::string fullUrl;  // path as specified
+  std::string path;     // path without query
   std::map<std::string, std::string> params;
 
   std::map<std::string, std::string> headers;
   std::string body;
 };
-}
-}
+}}  // namespace asiodemo::rest
 
 #endif

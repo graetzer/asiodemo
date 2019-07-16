@@ -6,8 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace asiodemo {
-namespace rest {
+namespace asiodemo { namespace rest {
 
 enum class ResponseCode {
   CONTINUE = 100,
@@ -80,7 +79,6 @@ struct Response {
   std::string responseString() const;
   std::unique_ptr<std::string> generateHeader() const;
 };
-}
-}
+}}  // namespace asiodemo::rest
 
 #endif
