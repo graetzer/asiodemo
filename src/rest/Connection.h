@@ -17,10 +17,12 @@ namespace asiodemo {
 namespace rest {
 
 class Server;
-class Request;
+struct Request;
+  
+class AbstrConn : public std::enable_shared_from_this<AbstrConn> {};
 
 template<SocketType T>
-class Connection : std::enable_shared_from_this<Connection<T>>  {
+class Connection : public AbstrConn {
  public:
   Connection(Server& server, 
              std::unique_ptr<AsioSocket<T>>);

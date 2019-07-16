@@ -12,25 +12,25 @@ void Server::addHandler(std::string path, HandleFunc func) {
 }
 
 
-void Server::listenAndServe(std::string host, int port) {
+void Server::listenAndServe() {
 
   _ioContext = std::make_shared<asio::io_context>(1);
-  auto guard = asio::make_work_guard(*_ioContext));
+  auto guard = asio::make_work_guard(*_ioContext);
   asio::io_context* ctx = _ioContext.get();
 
   std::thread t([ctx]() { ctx->run(); });
 
   if (_useTLS) {
-    _acceptor = std::make_unique<AcceptorTcp<SocketType::Ssl>>(_context, *this);
+    _acceptor = std::make_unique<AcceptorTcp<SocketType::Ssl>>(*_ioContext, *this);
   } else {
-    _acceptor = std::make_unique<AcceptorTcp<SocketType::Tcp>>(_context, *this);
+    _acceptor = std::make_unique<AcceptorTcp<SocketType::Tcp>>(*_ioContext, *this);
   }
 
   _acceptor->open();
 
   std::this_thread::sleep_for(std::chrono::seconds(120));
 
-  _guard.reset();  // allow run() to exit
+  guard.reset();  // allow run() to exit
   t.join();
   _ioContext->stop();
 }
@@ -38,7 +38,7 @@ void Server::listenAndServe(std::string host, int port) {
 std::unique_ptr<Response> Server::execute(Request const& req) {
    auto const& it = _handlers.find(req.path);
    if (it != _handlers.end()) {
-     return it.second(req);
+     return it->second(req);
    }
 
   auto res = std::make_unique<Response>();
@@ -48,7 +48,7 @@ std::unique_ptr<Response> Server::execute(Request const& req) {
   return res;
 }
 
-asio::ssl::context& EventLoopService::sslContext() {
+asio::ssl::context& Server::sslContext() {
   std::lock_guard<std::mutex> guard(_sslContextMutex);
   if (!_sslContext) {
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)

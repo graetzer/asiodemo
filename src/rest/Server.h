@@ -33,7 +33,7 @@ class Server {
       _useTLS = yesNo;
     }
 
-    void listenAndServe(std::string host, int port);
+    void listenAndServe();
 
     asio::ssl::context& sslContext();
 

@@ -1,7 +1,9 @@
 #include "Utils.h"
 
 namespace asiodemo {
-namespace rest {
+namespace utils {
+  
+using namespace asiodemo::rest;
 
 Request::Type llhttpToRequestType(llhttp_t* p) {
   switch (p->method) {

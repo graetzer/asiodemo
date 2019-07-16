@@ -22,7 +22,11 @@ struct Request {
 
   void parseUrl(const char* path, size_t len);
 
-  std::string header(std::string const& key, bool& found) {
+  std::string header(std::string const& key) const {
+    bool found;
+    return this->header(key, found);
+  }
+  std::string header(std::string const& key, bool& found) const {
     auto const& val = headers.find(key);
     if (val != headers.end()) {
       found = true;

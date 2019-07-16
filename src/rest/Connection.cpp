@@ -3,6 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "Connection.h"
+#include "Server.h"
 #include "Utils.h"
 
 #include <cstring>
@@ -156,17 +157,62 @@ Connection<T>::Connection(Server& server, std::unique_ptr<AsioSocket<T>> so)
 template <SocketType T>
 Connection<T>::~Connection() {}
 
-/// @brief send error response including response body
 template <SocketType T>
-void Connection<T>::addSimpleResponse(rest::ResponseCode code) {
-  try {
-    auto resp = std::make_unique<Response>();
-    resp->status_code = code;
-    sendResponse(std::move(resp));
-  } catch (...) {
-    std::cout << "addSimpleResponse received an exception, closing connection";
-    this->close();
+void Connection<T>::start() {
+  _protocol->setNonBlocking(true);
+  asyncReadSome();
+}
+
+template <SocketType T>
+void Connection<T>::close() {
+  if (_protocol) {
+    _protocol->timer.cancel();
+    asio::error_code ec;
+    _protocol->shutdown(ec);
+    if (ec) {
+      std::cout << "error shutting down asio socket: '" << ec.message() << "'";
+    }
   }
+}
+
+template <SocketType T>
+void Connection<T>::asyncReadSome() {
+  asio::error_code ec;
+  // first try a sync read for performance
+  if (_protocol->supportsMixedIO()) {
+    std::size_t available = _protocol->available(ec);
+    while (!ec && available > 8) {
+      auto mutableBuff = _protocol->buffer.prepare(available);
+      size_t nread = _protocol->socket.read_some(mutableBuff, ec);
+      _protocol->buffer.commit(nread);
+      if (ec) {
+        break;
+      }
+      if (!readCallback(ec)) {
+        return;
+      }
+      available = _protocol->available(ec);
+    }
+    if (ec == asio::error::would_block) {
+      ec.clear();
+    }
+  }
+  
+  // read pipelined requests / remaining data
+  if (_protocol->buffer.size() > 0 && !readCallback(ec)) {
+    return;
+  }
+  
+  auto cb = [self = this->shared_from_this()](asio::error_code const& ec,
+                                              size_t transferred) {
+    auto* thisPtr = static_cast<Connection<T>*>(self.get());
+    thisPtr->_protocol->buffer.commit(transferred);
+    if (thisPtr->readCallback(ec)) {
+      thisPtr->asyncReadSome();
+    }
+  };
+  auto mutableBuff = _protocol->buffer.prepare(READ_BLOCK_SIZE);
+  _protocol->socket.async_read_some(mutableBuff, std::move(cb));
 }
 
 template <SocketType T>
@@ -230,8 +276,24 @@ void Connection<T>::processRequest() {
   }
 
   // TODO scrape authentication, etc
+  
+  auto response = _server.execute(*_request);
 
-  this->executeRequest(std::move(_request), std::move(resp));
+  sendResponse(std::move(response));
+}
+
+
+/// @brief send error response including response body
+template <SocketType T>
+void Connection<T>::addSimpleResponse(rest::ResponseCode code) {
+  try {
+    auto resp = std::make_unique<Response>();
+    resp->status_code = code;
+    sendResponse(std::move(resp));
+  } catch (...) {
+    std::cout << "addSimpleResponse received an exception, closing connection";
+    this->close();
+  }
 }
 
 template <SocketType T>
@@ -244,8 +306,9 @@ void Connection<T>::parseOriginHeader(rest::Request const& req) {
 
     // if the request asks to allow credentials, we'll check against the
     // configured whitelist of origins
-    std::vector<std::string> const& accessControlAllowOrigins =
-        GeneralServerFeature::accessControlAllowOrigins();
+    std::vector<std::string> accessControlAllowOrigins{"arangodb.com",
+      "example.com"
+    };
 
     if (!accessControlAllowOrigins.empty()) {
       if (accessControlAllowOrigins[0] == "*") {
@@ -274,7 +337,8 @@ void Connection<T>::parseOriginHeader(rest::Request const& req) {
 /// handle an OPTIONS request
 template <SocketType T>
 void Connection<T>::processCorsOptions() {
-  auto resp = std::make_unique<Response>(rest::ResponseCode::OK, nullptr);
+  auto resp = std::make_unique<Response>();
+  resp->status_code = rest::ResponseCode::OK;
 
   // send back which HTTP methods are allowed for the resource
   // we'll allow all
@@ -302,7 +366,7 @@ void Connection<T>::processCorsOptions() {
   }
 
   _request.reset(); // forge the request
-  sendResponse(std::move(resp), nullptr);
+  sendResponse(std::move(resp));
 }
 
 template <SocketType T>
@@ -336,7 +400,7 @@ void Connection<T>::sendResponse(std::unique_ptr<Response> response) {
   }
 
   // FIXME measure performance w/o sync write
-  auto cb = [self = shared_from_this(),
+  auto cb = [self = this->shared_from_this(),
              h = std::move(header),
              b = std::move(body)](asio::error_code ec,
                                   size_t nwrite) {
@@ -367,6 +431,6 @@ void Connection<T>::sendResponse(std::unique_ptr<Response> response) {
 
 template class asiodemo::rest::Connection<SocketType::Tcp>;
 template class asiodemo::rest::Connection<SocketType::Ssl>;
-#ifndef _WIN32
-template class asiodemo::rest::Connection<SocketType::Unix>;
-#endif
+//#ifndef _WIN32
+//template class asiodemo::rest::Connection<SocketType::Unix>;
+//#endif

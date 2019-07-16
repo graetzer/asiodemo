@@ -4,8 +4,8 @@ using namespace asiodemo;
 using namespace asiodemo::rest;
 
 
-std::string Response::responseString(ResponseCode code) {
-  switch (code) {
+std::string Response::responseString() const {
+  switch (this->status_code) {
     //  Informational 1xx
     case ResponseCode::CONTINUE:
       return "100 Continue";
@@ -112,6 +112,7 @@ std::string Response::responseString(ResponseCode code) {
 
     // default
     default: {
+      auto code = status_code;
       // print generic group responses, based on error code group
       int group = ((int)code) / 100;
       switch (group) {
@@ -131,7 +132,7 @@ std::string Response::responseString(ResponseCode code) {
     }
   }
 
-  return std::to_string((int)code) + " Unknown";
+  return std::to_string((int)status_code) + " Unknown";
 }
 
 std::unique_ptr<std::string> Response::generateHeader() const {
@@ -140,10 +141,10 @@ std::unique_ptr<std::string> Response::generateHeader() const {
   header->reserve(220);
 
   header->append("HTTP/1.1 ");
-  header->append(Response::responseString(response.responseCode()));
+  header->append(this->responseString());
   header->append("\r\n", 2);
 
-  for (auto const& it : response.headers()) {
+  for (auto const& it : this->headers) {
     std::string const& key = it.first;
     size_t const keyLength = key.size();
     // ignore content-length
@@ -188,14 +189,18 @@ std::unique_ptr<std::string> Response::generateHeader() const {
     header->append("Content-Type: text/plain; charset=utf-8\r\n");
 
   // Cookies
-  for (auto const& it : response.cookies()) {
+  for (auto const& it : this->cookies) {
     header->append("Set-Cookie: ");
     header->append(it);
     header->append("\r\n", 2);
   }
 
   header->append("Content-Length: ");
-  header->append(std::to_string(response.bodySize()));
+  if (this->body) {
+    header->append(std::to_string(this->body->size()));
+  } else {
+    header->append("0");
+  }
   header->append("\r\n", 2);
       
   header->append("Connection: Keep-Alive\r\n");

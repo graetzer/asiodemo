@@ -4,7 +4,7 @@
 
 #include <map>
 #include <string>
-
+#include <vector>
 
 namespace asiodemo {
 namespace rest {
@@ -77,6 +77,7 @@ struct Response {
     headers.emplace(key, value);
   }
 
+  std::string responseString() const;
   std::unique_ptr<std::string> generateHeader() const;
 };
 }
