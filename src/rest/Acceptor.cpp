@@ -4,6 +4,7 @@
 
 #include "Acceptor.h"
 #include "Connection.h"
+#include "Server.h"
 
 #include <iostream>
 #include <chrono>
@@ -12,7 +13,7 @@ using namespace asiodemo::rest;
 
 template <SocketType T>
 AcceptorTcp<T>::AcceptorTcp(asio::io_context &ctx, rest::Server& server)
-  : Acceptor(server), _ctx(ctx), _acceptor(ctx), , _asioSocket() {}
+  : Acceptor(server), _ctx(ctx), _acceptor(ctx), _asioSocket() {}
 
 template <SocketType T>
 void AcceptorTcp<T>::open() {
@@ -124,8 +125,10 @@ void AcceptorTcp<SocketType::Tcp>::asyncAccept() {
     }
 
     std::unique_ptr<AsioSocket<SocketType::Tcp>> as = std::move(_asioSocket);
-    auto conn = std::make_shared<Connection<SocketType::Tcp>>(std::move(as));
-    conn-start();
+    auto conn = std::make_shared<Connection<SocketType::Tcp>>(_server, std::move(as));
+    conn->start();
+
+    // accept next request
     this->asyncAccept();
   };
 
@@ -161,7 +164,7 @@ void AcceptorTcp<SocketType::Ssl>::performHandshake(std::unique_ptr<AsioSocket<S
     }
     
     auto conn =
-    std::make_unique<Connection<SocketType::Ssl>>(std::move(as));
+    std::make_unique<Connection<SocketType::Ssl>>(_server, std::move(as));
     conn->start();
   };
   ptr->handshake(std::move(cb));

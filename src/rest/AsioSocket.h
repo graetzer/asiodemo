@@ -115,45 +115,5 @@ struct AsioSocket<SocketType::Ssl> {
   asio::streambuf buffer;
 };
 
-#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS) || defined(ASIO_HAS_LOCAL_SOCKETS)
-template <>
-struct AsioSocket<SocketType::Unix> {
-  AsioSocket(asio::io_context& ctx) : context(ctx), socket(ctx), timer(ctx) {}
-
-  ~AsioSocket() {
-    try {
-      timer.cancel();
-      asio::error_code ec;
-      shutdown(ec);
-    } catch (...) {
-    }
-  }
-
-  void setNonBlocking(bool v) { socket.non_blocking(v); }
-  bool supportsMixedIO() const { return true; }
-  std::size_t available(asio::error_code& ec) const {
-    return socket.lowest_layer().available(ec);
-  }
-
-  void shutdown(asio::error_code& ec) {
-    if (socket.is_open()) {
-      socket.cancel(ec);
-      if (!ec) {
-        socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
-      }
-      if (!ec) {
-        socket.close(ec);
-      }
-    }
-  }
-
-  asio::io_context& context;
-  asio::local::stream_protocol::socket socket;
-  asio::local::stream_protocol::acceptor::endpoint_type peer;
-  asio::steady_timer timer;
-  asio::streambuf buffer;
-};
-#endif  // ASIO_HAS_LOCAL_SOCKETS
-
 }}  // namespace asiodemo::rest
 #endif

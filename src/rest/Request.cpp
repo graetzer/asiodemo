@@ -1,6 +1,9 @@
 #include "Request.h"
 
-void Request::parseUrl(const* url, size_t len)  {
+using namespace asiodemo;
+using namespace asiodemo::rest;
+
+void Request::parseUrl(const char*  url, size_t urlLen)  {
   this->fullUrl.reserve(urlLen);
   // get rid of '//'
   for (size_t i = 0; i < urlLen; ++i) {

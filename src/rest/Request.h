@@ -20,12 +20,26 @@ struct Request {
     ILLEGAL  // must be last
   };
 
-  void parseUrl(const* path, size_t len);
+  void parseUrl(const char* path, size_t len);
+
+  std::string header(std::string const& key, bool& found) {
+    auto const& val = headers.find(key);
+    if (val != headers.end()) {
+      found = true;
+      return val->second;
+    }
+    found = false;
+    return std::string();
+  }
+
+  void setHeader(std::string key, std::string val) {
+    headers.emplace(std::move(key), std::move(val));
+  }
 
   public:
 
   Type method;
-    std::string fullUrl; // path as specified
+  std::string fullUrl; // path as specified
   std::string path; // path without query
   std::map<std::string, std::string> params;
 

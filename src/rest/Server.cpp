@@ -7,10 +7,6 @@ using namespace asiodemo::rest;
 #include <chrono>
 #include <thread>
 
-Server::~Server() {
-
-}
-
 void Server::addHandler(std::string path, HandleFunc func) {
   _handlers.emplace(path, func);
 }
@@ -19,7 +15,7 @@ void Server::addHandler(std::string path, HandleFunc func) {
 void Server::listenAndServe(std::string host, int port) {
 
   _ioContext = std::make_shared<asio::io_context>(1);
-  _guard = asio::make_work_guard(*_ioContext));
+  auto guard = asio::make_work_guard(*_ioContext));
   asio::io_context* ctx = _ioContext.get();
 
   std::thread t([ctx]() { ctx->run(); });
@@ -39,11 +35,7 @@ void Server::listenAndServe(std::string host, int port) {
   _ioContext->stop();
 }
 
-void Server::cancel() {
-
-}
-
-std::unique_ptr<Response> Server::perform(Request const& req) {
+std::unique_ptr<Response> Server::execute(Request const& req) {
    auto const& it = _handlers.find(req.path);
    if (it != _handlers.end()) {
      return it.second(req);

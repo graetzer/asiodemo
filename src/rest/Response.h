@@ -9,7 +9,6 @@
 namespace asiodemo {
 namespace rest {
 
-
 enum class ResponseCode {
   CONTINUE = 100,
   SWITCHING_PROTOCOLS = 101,

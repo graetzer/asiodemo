@@ -116,22 +116,22 @@ std::string Response::responseString(ResponseCode code) {
       int group = ((int)code) / 100;
       switch (group) {
         case 1:
-          return StringUtils::itoa((int)code) + " Informational";
+          return std::to_string((int)code) + " Informational";
         case 2:
-          return StringUtils::itoa((int)code) + " Success";
+          return std::to_string((int)code) + " Success";
         case 3:
-          return StringUtils::itoa((int)code) + " Redirection";
+          return std::to_string((int)code) + " Redirection";
         case 4:
-          return StringUtils::itoa((int)code) + " Client error";
+          return std::to_string((int)code) + " Client error";
         case 5:
-          return StringUtils::itoa((int)code) + " Server error";
+          return std::to_string((int)code) + " Server error";
         default:
           break;
       }
     }
   }
 
-  return StringUtils::itoa((int)code) + " Unknown";
+  return std::to_string((int)code) + " Unknown";
 }
 
 std::unique_ptr<std::string> Response::generateHeader() const {
@@ -185,31 +185,7 @@ std::unique_ptr<std::string> Response::generateHeader() const {
   }
   
   // add "Content-Type" header
-  switch (response.contentType()) {
-    case ContentType::UNSET:
-    case ContentType::JSON:
-      header->append(TRI_CHAR_LENGTH_PAIR(
-          "Content-Type: application/json; charset=utf-8\r\n"));
-      break;
-    case ContentType::VPACK:
-      header->append(
-          TRI_CHAR_LENGTH_PAIR("Content-Type: application/x-velocypack\r\n"));
-      break;
-    case ContentType::TEXT:
-      header->append(
-          TRI_CHAR_LENGTH_PAIR("Content-Type: text/plain; charset=utf-8\r\n"));
-      break;
-    case ContentType::HTML:
-      header->append(
-          TRI_CHAR_LENGTH_PAIR("Content-Type: text/html; charset=utf-8\r\n"));
-      break;
-    case ContentType::DUMP:
-      header->append(TRI_CHAR_LENGTH_PAIR(
-          "Content-Type: application/x-arango-dump; charset=utf-8\r\n"));
-      break;
-    case ContentType::CUSTOM:  // don't do anything
-      break;
-  }
+    header->append("Content-Type: text/plain; charset=utf-8\r\n");
 
   // Cookies
   for (auto const& it : response.cookies()) {
@@ -221,25 +197,10 @@ std::unique_ptr<std::string> Response::generateHeader() const {
   header->append("Content-Length: ");
   header->append(std::to_string(response.bodySize()));
   header->append("\r\n", 2);
-  
-  // turn on the keepAlive timer
-  double secs = GeneralServerFeature::keepAliveTimeout();
-  if (_shouldKeepAlive && secs > 0) {
-    int64_t millis = static_cast<int64_t>(secs * 1000);
-    this->_protocol->timer.expires_after(std::chrono::milliseconds(millis));
-    this->_protocol->timer.async_wait([this](asio::error_code ec) {
-      if (!ec) {
-        std::cout << "keep alive timout, closing stream!";
-        this->close();
-      }
-    });
-    
-    header->append("Connection: Keep-Alive\r\n");
-    header->append("Keep-Alive: timeout=60");
-    header->append("\r\n\r\n");
-  } else {
-    header->append("Connection: Close\r\n\r\n");
-  }
+      
+  header->append("Connection: Keep-Alive\r\n");
+  header->append("Keep-Alive: timeout=60");
+  header->append("\r\n\r\n");
 
   return header;
 }

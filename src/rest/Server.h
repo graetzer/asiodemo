@@ -25,10 +25,11 @@ class Server {
   public:
 
     Server() {}
+    ~Server() {}
 
     void addHandler(std::string path, HandleFunc);
 
-    bool useTLS(bool yesNo) {
+    void useTLS(bool yesNo) {
       _useTLS = yesNo;
     }
 
@@ -36,7 +37,7 @@ class Server {
 
     asio::ssl::context& sslContext();
 
-    std::unique_ptr<Response> perform(Request const&);
+    std::unique_ptr<Response> execute(Request const&);
 
   private:
     bool _useTLS = false;
@@ -51,11 +52,9 @@ class Server {
 
     /// io contexts
     std::shared_ptr<asio::io_context> _ioContext;
-    /// Used to keep the io-context alive.
-    asio::io_context::executor_type _guard;
 };
 
-} namespace rest
+} // namespace rest
 } // namespace asiodemo 
 
 #endif
